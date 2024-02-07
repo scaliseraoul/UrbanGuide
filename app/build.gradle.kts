@@ -50,7 +50,6 @@ android {
 }
 
 dependencies {
-
     implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
     implementation("androidx.activity:activity-compose:1.7.0")
@@ -69,4 +68,5 @@ dependencies {
     implementation("com.google.maps.android:maps-compose:4.3.0")
     implementation("com.mapbox.maps:android:11.1.0")
     implementation("com.mapbox.extension:maps-compose:11.1.0")
+    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
 }

@@ -114,6 +114,7 @@ class HeatmapTileProvider(private val heatmapType: String) : UrlTileProvider(TIL
 
     override fun getTileUrl(x: Int, y: Int, zoom: Int): URL? {
         Log.d("Raoul", "$x $y $zoom")
+
         return try {
             URL("https://airquality.googleapis.com/v1/mapTypes/$heatmapType/heatmapTiles/$zoom/$x/$y?key=$apiKey")
         } catch (e: Exception) {
@@ -121,27 +122,4 @@ class HeatmapTileProvider(private val heatmapType: String) : UrlTileProvider(TIL
             null
         }
     }
-}
-class CustomTileProvider : TileProvider {
-    override fun getTile(x: Int, y: Int, zoom: Int): Tile {
-        Log.d("Raoul", "$x $y $zoom")
-        val bitmap = createMockBitmap()
-        val byteArray = bitmapToByteArray(bitmap)
-        return Tile(bitmap.width, bitmap.height, byteArray)
-    }
-}
-
-fun createMockBitmap(): Bitmap {
-    val bitmap = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val intensity = Random.nextDouble(0.0, 1.0)
-    val color = Color.argb(255, (intensity * 255).toInt(), 0, 0)
-    canvas.drawColor(color)
-    return bitmap
-}
-
-fun bitmapToByteArray(bitmap: Bitmap): ByteArray {
-    val stream = ByteArrayOutputStream()
-    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-    return stream.toByteArray()
 }

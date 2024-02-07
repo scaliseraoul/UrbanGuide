@@ -110,19 +110,26 @@ fun convertLatLangToPoint(latLang : LatLng) : Point {
     return Point.fromLngLat(latLang.longitude,latLang.latitude)
 }
 
-fun addMarkersToMap(context: Context, markers: List<MarkerData>, pointAnnotationManager: PointAnnotationManager?) {
-    pointAnnotationManager?.deleteAll()
+fun addMarkerToMap(context: Context, marker: MarkerData, pointAnnotationManager: PointAnnotationManager?) {
 
     // Add new markers
+    val point = convertLatLangToPoint(marker.position)
+    val iconImage = BitmapFactory.decodeResource(context.resources, R.drawable.mapbox_marker_icon_20px_blue)
+
+    //start drawing fun
+    val pointAnnotationOptions = PointAnnotationOptions()
+        .withPoint(point)
+        .withIconImage(iconImage)
+        .withTextField(marker.title)
+
+    pointAnnotationManager?.create(pointAnnotationOptions)
+    //end drawing fun
+}
+
+fun addMarkersToMap(context: Context, markers: List<MarkerData>, pointAnnotationManager: PointAnnotationManager?) {
+    pointAnnotationManager?.deleteAll()
+    // Add new markers
     markers.forEach { markerData ->
-        val point = convertLatLangToPoint(markerData.position)
-        val iconImage = BitmapFactory.decodeResource(context.resources, R.drawable.mapbox_marker_icon_20px_blue)
-
-        val pointAnnotationOptions = PointAnnotationOptions()
-            .withPoint(point)
-            .withIconImage(iconImage)
-            .withTextField(markerData.title)
-
-        pointAnnotationManager?.create(pointAnnotationOptions)
+        addMarkerToMap(context,markerData,pointAnnotationManager)
     }
 }

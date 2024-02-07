@@ -31,7 +31,13 @@ import com.urbanguide.ui.theme.UrbanGuideTheme
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+
+class MainActivity : ComponentActivity()  {
+    private lateinit var mqttManager: MQTTManager
+
+    companion object {
+        const val TAG = "Raoul"
+    }
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +53,13 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        mqttManager = MQTTManager()
+        mqttManager.subscribe("test-topic")
+        //mqttManager.publish("test-topic","Ciao dall'app")
     }
 }
 
@@ -68,7 +81,7 @@ fun MenuSheetScaffold() {
     val onButtonClicked: (Category) -> Unit = { category ->
         scope.launch { scaffoldState.bottomSheetState.partialExpand()}
         mapData = DataRepository.getData(category)
-        Log.d("raoul",mapData.toString())
+        Log.d(MainActivity.TAG,mapData.toString())
     }
 
     BottomSheetScaffold(
@@ -84,7 +97,7 @@ fun MenuSheetScaffold() {
                 .fillMaxSize()
                 .padding(bottom = 90.dp)
         ) {
-            MapBoxComponent(mapData)
+            GoogleMapComponent(mapData)
         }
     }
 }
@@ -92,6 +105,7 @@ fun MenuSheetScaffold() {
 @Composable
 fun MenuScaffoldContent(onButtonClicked: (Category) -> Unit) {
     val categories = CategoryDataProvider.getCategories()
+
 
     Column(modifier = Modifier.fillMaxWidth()) {
 
@@ -125,5 +139,6 @@ fun CategoryButtons(buttons: List<Category>, maxButtonsPerRow: Int = 3, onButton
             }
         }
     }
+
 }
 

@@ -50,7 +50,6 @@ object DataRepository {
         MarkerData("2", "Monument 3", Category("Monuments",VisualizationType.Pins), getRandomLocation()),
         MarkerData("2", "Monument 4", Category("Monuments",VisualizationType.Pins), getRandomLocation()),
         MarkerData("2", "Monument 5", Category("Monuments",VisualizationType.Pins), getRandomLocation()),
-
         HeatmapData("1", "Air Pollution Heatmap", Category("Air Pollution",VisualizationType.HeatMap),"Area1"),
     )
 
@@ -65,7 +64,7 @@ object DataRepository {
 
 fun getRandomLocation(): LatLng {
     val startingPoint: LatLng = LatLng(44.646469, 10.925139)
-    val radiusInMeters : Double = 300.0
+    val radiusInMeters : Double = 500.0
     val radiusInDegrees = radiusInMeters / 111320f
 
     // Random distance and angle

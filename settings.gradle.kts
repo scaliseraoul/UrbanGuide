@@ -10,7 +10,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-
         // Mapbox Maven repository
         maven {
             url = uri("https://api.mapbox.com/downloads/v2/releases/maven")
@@ -20,7 +19,7 @@ dependencyResolutionManagement {
             credentials.password = providers.gradleProperty("MAPBOX_DOWNLOADS_TOKEN").get()
             authentication.create<BasicAuthentication>("basic")
         }
-
+        maven("https://repo.eclipse.org/content/repositories/paho-releases/")
     }
 }
 
