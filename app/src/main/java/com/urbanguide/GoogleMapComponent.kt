@@ -1,66 +1,28 @@
 package com.urbanguide
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
+import android.os.Bundle
 import android.util.Log
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.google.android.gms.maps.model.CameraPosition
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Tile
-import com.google.android.gms.maps.model.TileProvider
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.TileOverlayOptions
 import com.google.android.gms.maps.model.UrlTileProvider
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapType
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.TileOverlay
-import com.google.maps.android.compose.rememberCameraPositionState
-import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import java.net.URL
-import kotlin.random.Random
 
-
-@Composable
-fun GoogleMapComponent(mapData: List<DataBeam>) {
-    val modena = LatLng(44.646469, 10.925139)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(modena, 15f)
-    }
-
-    var maxZoom by remember { mutableFloatStateOf(100.0f) }
-    var markers by remember { mutableStateOf(listOf<MarkerData>()) }
-    var heatmaps by remember { mutableStateOf(listOf<HeatmapData>()) }
-
-    markers = mapData.filterIsInstance<MarkerData>()
-    heatmaps = mapData.filterIsInstance<HeatmapData>()
-
-    val adjustZoom : (float: Float) -> Unit =  {float: Float ->
-        maxZoom = float
-    }
-
-    Log.d("Raoul",DataRepository.heatmapPoints.toString())
-    val properties = MapProperties(
-        isBuildingEnabled = false,
-        isIndoorEnabled = false,
-        isMyLocationEnabled = false,
-        isTrafficEnabled = false,
-        latLngBoundsForCameraTarget = null,
-        mapStyleOptions = null,
-        mapType = MapType.NORMAL,
-        maxZoomPreference = maxZoom,
-        minZoomPreference = 10.0f
-    )
-
+/*
     GoogleMap(
         modifier = Modifier
             .padding(0.dp)
@@ -76,33 +38,105 @@ fun GoogleMapComponent(mapData: List<DataBeam>) {
     ) {
         GetMarkers(markers)
         GetOverlays(heatmaps,adjustZoom)
+    } */
+
+@Composable
+fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent>) {
+
+    val TAG = "GoogleMapComponent"
+    val modena = LatLng(44.646469, 10.925139)
+
+    var position by remember { mutableStateOf(modena) }
+    var markers by remember { mutableStateOf(listOf<MarkerData>()) }
+    var heatmaps by remember { mutableStateOf(listOf<HeatmapData>()) }
+
+    markers = mapData.filterIsInstance<MarkerData>()
+    heatmaps = mapData.filterIsInstance<HeatmapData>()
+
+    var googleMap by remember { mutableStateOf<GoogleMap?>(null) }
+    val mapView = rememberGoogleMapViewWithLifecycle()
+
+    val mqttEvents = mqttEventChannel.receiveAsFlow()
+
+    mapView.getMapAsync { map ->
+        googleMap = map
+        map.isBuildingsEnabled = false
+        map.isIndoorEnabled = false
+        map.isTrafficEnabled = false
+        map.mapType = GoogleMap.MAP_TYPE_NORMAL
+        map.setMinZoomPreference(10.0f)
+        val startTime = System.nanoTime()
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 15f))
+        map.setOnCameraIdleListener {
+            Log.d("Performance Google", "Move Camera Idle Elapsed ${System.nanoTime() - startTime}")
+        }
+        Log.d("Performance Google", "Move Camera Out Elapsed ${System.nanoTime() - startTime}")
     }
+
+    LaunchedEffect(key1 = mqttEvents) {
+        mqttEvents.collect { mqttEvent ->
+
+            when (mqttEvent) {
+                is DrawPointEvent -> {
+                    val startTime = System.nanoTime()
+                    googleMap?.addMarker(MarkerOptions().position(mqttEvent.position).title(mqttEvent.title))
+                    Log.d("Performance Google", "Elapsed ${System.nanoTime() - startTime}")
+                }
+            }
+
+            googleMap?.let { map ->
+
+            }
+        }
+    }
+
+    AndroidView(
+        factory = { mapView },
+        update = { _ ->
+            googleMap?.let { map ->
+                map.clear()
+                markers.forEach { markerData ->
+                    map.addMarker(MarkerOptions().position(markerData.position).title(markerData.title))
+                }
+                if(heatmaps.isNotEmpty()){
+                    map.setMaxZoomPreference(16.0f)
+                } else {
+                    map.setMaxZoomPreference(45.0f)
+                }
+                heatmaps.forEach {heatmapData ->
+                    val tileOverlayOption = TileOverlayOptions()
+                    tileOverlayOption.tileProvider(HeatmapTileProvider("UAQI_RED_GREEN"))
+                    tileOverlayOption.transparency(0.2f)
+                    map.addTileOverlay(tileOverlayOption)
+                }
+            }
+        }
+    )
 }
 
 @Composable
-fun GetMarkers(markers: List<MarkerData>) {
-    markers.forEach {markerData: MarkerData ->
-        GoogleMapMarker(markerData)
+fun rememberGoogleMapViewWithLifecycle(): MapView {
+    val context = LocalContext.current
+
+    val mapView = remember {
+        MapView(context).apply {
+            onCreate(Bundle())
+        }
     }
+
+    // Handle lifecycle events
+    DisposableEffect(context) {
+        mapView.onStart()
+        mapView.onResume()
+        onDispose {
+            mapView.onPause()
+            mapView.onStop()
+            mapView.onDestroy()
+        }
+    }
+
+    return mapView
 }
-
-@Composable
-fun GetOverlays(overlays: List<HeatmapData>, maxZoom: (float: Float) -> Unit) {
-
-    if(overlays.isNotEmpty()){
-        maxZoom(16.0f)
-    } else {
-        maxZoom(45.0f)
-    }
-
-    overlays.forEach { _: HeatmapData ->
-        TileOverlay(
-            tileProvider = HeatmapTileProvider("UAQI_RED_GREEN"),
-            transparency = 0.2f
-        )
-    }
-}
-
 
 class HeatmapTileProvider(private val heatmapType: String) : UrlTileProvider(TILE_WIDTH, TILE_HEIGHT) {
 

@@ -2,6 +2,7 @@ package com.urbanguide
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -46,7 +47,7 @@ fun MapBoxComponent(mapData: List<DataBeam>) {
     val tileServerUrl = "https://airquality.googleapis.com/v1/mapTypes/UAQI_RED_GREEN/heatmapTiles/{z}/{x}/{y}?key=${apiKey}"
 
     // MapView initialization
-    val mapView = rememberMapViewWithLifecycle()
+    val mapView = rememberMapBoxViewWithLifecycle()
     val pointAnnotationManager = remember { mapView.annotations.createPointAnnotationManager() }
 
     // Observe heatmaps list and update the map style accordingly
@@ -83,12 +84,12 @@ fun MapBoxComponent(mapData: List<DataBeam>) {
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),
-        factory = { mapView }
+        factory = { mapView },
     )
 }
 
 @Composable
-fun rememberMapViewWithLifecycle(): MapView {
+fun rememberMapBoxViewWithLifecycle(): MapView {
     val context = LocalContext.current
     val mapView = remember {
         MapView(context, MapInitOptions(context).apply {
@@ -115,7 +116,7 @@ fun addMarkerToMap(context: Context, marker: MarkerData, pointAnnotationManager:
     // Add new markers
     val point = convertLatLangToPoint(marker.position)
     val iconImage = BitmapFactory.decodeResource(context.resources, R.drawable.mapbox_marker_icon_20px_blue)
-
+    val startTime = System.nanoTime()
     //start drawing fun
     val pointAnnotationOptions = PointAnnotationOptions()
         .withPoint(point)
@@ -123,6 +124,7 @@ fun addMarkerToMap(context: Context, marker: MarkerData, pointAnnotationManager:
         .withTextField(marker.title)
 
     pointAnnotationManager?.create(pointAnnotationOptions)
+    Log.d("Performance MapBox", "Elapsed ${System.nanoTime() - startTime}")
     //end drawing fun
 }
 

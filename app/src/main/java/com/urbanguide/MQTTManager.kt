@@ -1,6 +1,7 @@
 package com.urbanguide
 
 import android.util.Log
+import com.google.android.gms.maps.model.LatLng
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttClient
@@ -14,11 +15,43 @@ enum class Topics {
     DrawPoint,
     InAppAlert,
     InAppNotification,
-    MoveMap
+    MoveMap,
+    Unmanaged;
+
+    companion object {
+        fun fromTopic(topic: String?): Topics {
+            return when {
+                topic?.contains("drawpoint", ignoreCase = true) == true -> DrawPoint
+                topic?.contains("inappalert", ignoreCase = true) == true -> InAppAlert
+                topic?.contains("inappnotification", ignoreCase = true) == true -> InAppNotification
+                topic?.contains("movemapp", ignoreCase = true) == true -> MoveMap
+                else -> Unmanaged
+            }
+        }
+    }
 }
 
 
-class MQTTManager() {
+interface MqttEvent {
+    val title: String
+    val topic: String
+    fun getData(){
+
+    }
+}
+
+data class DrawPointEvent(
+    override val title: String,
+    val position: LatLng,
+    override val topic: String
+) : MqttEvent {
+
+    override fun getData() {
+        super.getData()
+    }
+}
+
+class MQTTManager(mqttCallback: MqttCallback) {
     companion object {
         const val TAG = "MQTTManager"
     }
@@ -28,21 +61,7 @@ class MQTTManager() {
     private var mqttClient = MqttClient(serverURI, clientId, MemoryPersistence())
 
     init {
-        mqttClient.setCallback(object : MqttCallback {
-            override fun messageArrived(topic: String?, message: MqttMessage?) {
-                val currentTimeMillis = System.currentTimeMillis()
-                Log.d(TAG, "Receive message: ${message.toString()} from topic: $topic at time $currentTimeMillis")
-            }
-
-            override fun connectionLost(cause: Throwable?) {
-                Log.d(TAG, "Connection lost ${cause.toString()}")
-            }
-
-            override fun deliveryComplete(token: IMqttDeliveryToken?) {
-                Log.d(TAG, "Delivery Complete")
-            }
-
-        })
+        mqttClient.setCallback(mqttCallback)
         val options = MqttConnectOptions()
         options.isAutomaticReconnect = true
         options.isCleanSession = false

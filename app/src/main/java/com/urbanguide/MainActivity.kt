@@ -27,13 +27,22 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.maps.model.LatLng
 import com.urbanguide.ui.theme.UrbanGuideTheme
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
+import org.eclipse.paho.client.mqttv3.MqttCallback
+import org.eclipse.paho.client.mqttv3.MqttMessage
+import org.json.JSONObject
 
 
 class MainActivity : ComponentActivity()  {
     private lateinit var mqttManager: MQTTManager
+    private val mqttEventChannel = Channel<MqttEvent>(Channel.BUFFERED)
 
     companion object {
         const val TAG = "Raoul"
@@ -49,7 +58,7 @@ class MainActivity : ComponentActivity()  {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MenuSheetScaffold()
+                    MenuSheetScaffold(mqttEventChannel)
                 }
             }
         }
@@ -57,15 +66,57 @@ class MainActivity : ComponentActivity()  {
 
     override fun onStart() {
         super.onStart()
-        mqttManager = MQTTManager()
-        mqttManager.subscribe("test-topic")
+
+        mqttManager = MQTTManager(object : MqttCallback {
+            override fun messageArrived(topic: String?, message: MqttMessage?) {
+
+                val topicEnum = Topics.fromTopic(topic)
+                val payload = JSONObject(message.toString())
+
+                // Use a when statement to handle different keywords
+                when (topicEnum) {
+                    Topics.MoveMap -> {
+                        // Handle temperature message
+                    }
+                    Topics.InAppNotification -> {
+                        // Handle humidity message
+                    }
+                    Topics.InAppAlert -> {
+                        // Handle light message
+                    }
+                    Topics.DrawPoint -> {
+                        lifecycleScope.launch {
+                            mqttEventChannel.send(DrawPointEvent(
+                                title = payload.getString("title"),
+                                position = LatLng(payload.getDouble("lat"),payload.getDouble("lang")),
+                                topic = topic.orEmpty()
+                            ))
+                        }
+                    }
+                    Topics.Unmanaged -> {}
+                }
+
+                val currentTimeMillis = System.currentTimeMillis()
+                Log.d(MQTTManager.TAG, "Receive message: ${message.toString()} from topic: $topic at time $currentTimeMillis")
+            }
+
+            override fun connectionLost(cause: Throwable?) {
+                Log.d(MQTTManager.TAG, "Connection lost ${cause.toString()}")
+            }
+
+            override fun deliveryComplete(token: IMqttDeliveryToken?) {
+                Log.d(MQTTManager.TAG, "Delivery Complete")
+            }
+
+        })
+        mqttManager.subscribe("drawpoint")
         //mqttManager.publish("test-topic","Ciao dall'app")
     }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class,ExperimentalMaterial3Api::class)
 @Composable
-fun MenuSheetScaffold() {
+fun MenuSheetScaffold(mqttEventChannel: Channel<MqttEvent>) {
 
     val scaffoldState = rememberBottomSheetScaffoldState(
         SheetState(
@@ -84,6 +135,8 @@ fun MenuSheetScaffold() {
         Log.d(MainActivity.TAG,mapData.toString())
     }
 
+
+
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetContent = {
@@ -97,7 +150,7 @@ fun MenuSheetScaffold() {
                 .fillMaxSize()
                 .padding(bottom = 90.dp)
         ) {
-            GoogleMapComponent(mapData)
+            GoogleMapComponent(mapData,mqttEventChannel)
         }
     }
 }

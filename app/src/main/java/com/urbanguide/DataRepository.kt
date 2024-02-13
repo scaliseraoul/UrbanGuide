@@ -26,11 +26,6 @@ data class MarkerData(
     }
 }
 
-data class HeatmapPoint(
-    val position: LatLng,
-    val intensity: Double // Intensity or weight of the point
-)
-
 data class HeatmapData(
     override val id: String,
     override val title: String,
@@ -52,9 +47,6 @@ object DataRepository {
         MarkerData("2", "Monument 5", Category("Monuments",VisualizationType.Pins), getRandomLocation()),
         HeatmapData("1", "Air Pollution Heatmap", Category("Air Pollution",VisualizationType.HeatMap),"Area1"),
     )
-
-    val heatmapPoints = generateHeatmapPoints()
-
     fun getData(category: Category): List<DataBeam> {
         return db.filter { dataBeam ->
             dataBeam.category == category
@@ -82,24 +74,5 @@ fun getRandomLocation(): LatLng {
     val foundLatitude = y + startingPoint.latitude
 
     return LatLng(foundLatitude, foundLongitude)
-}
-
-
-fun generateHeatmapPoints(): List<HeatmapPoint> {
-    val steps = 10
-    val stepRadius = 0.001
-    val center: LatLng = LatLng(44.646469, 10.925139)
-    val points = mutableListOf<HeatmapPoint>()
-
-    for (i in -steps..steps) {
-        for (j in -steps..steps) {
-            val lat = center.latitude + i * stepRadius
-            val lng = center.longitude + j * stepRadius
-            val intensity = Random.nextDouble()
-            points.add(HeatmapPoint(position = LatLng(lat, lng),intensity = intensity))
-        }
-    }
-
-    return points
 }
 
