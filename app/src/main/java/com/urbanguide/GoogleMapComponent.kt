@@ -41,9 +41,9 @@ import java.net.URL
     } */
 
 @Composable
-fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent>) {
-
+fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent>, mqttManager: MQTTManager) {
     val TAG = "GoogleMapComponent"
+    val BaseTopic = "AndroidKotlinGoogleMaps"
     val modena = LatLng(44.646469, 10.925139)
 
     var position by remember { mutableStateOf(modena) }
@@ -73,19 +73,33 @@ fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEv
         Log.d("Performance Google", "Move Camera Out Elapsed ${System.nanoTime() - startTime}")
     }
 
+    mqttManager.subscribe("$BaseTopic${Topics.DrawPoint}Receive")
+    mqttManager.subscribe("$BaseTopic${Topics.MoveMap}Receive")
+
     LaunchedEffect(key1 = mqttEvents) {
         mqttEvents.collect { mqttEvent ->
-
             when (mqttEvent) {
-                is DrawPointEvent -> {
+                is MqttEvent.DrawPointEvent -> {
                     val startTime = System.nanoTime()
                     googleMap?.addMarker(MarkerOptions().position(mqttEvent.position).title(mqttEvent.title))
-                    Log.d("Performance Google", "Elapsed ${System.nanoTime() - startTime}")
+                    val elapsedTime = System.nanoTime() - startTime
+                    val mqttPayload = "${mqttEvent.timestamp_sent},Android,Kotlin,GoogleMap,${Topics.DrawPoint},0,0,$elapsedTime"
+                    mqttManager.publish("$BaseTopic${Topics.DrawPoint}Complete",mqttPayload)
+                    Log.d("Performance", "payload: $mqttPayload")
                 }
-            }
-
-            googleMap?.let { map ->
-
+                is MqttEvent.MoveMapEvent -> {
+                    var startTime : Long = 0
+                    var elapsedTime : Long = 0
+                    googleMap?.setOnCameraIdleListener {
+                        elapsedTime = System.nanoTime() - startTime
+                        val mqttPayload = "${mqttEvent.timestamp_sent},Android,Kotlin,GoogleMap,${Topics.MoveMap},0,0,$elapsedTime"
+                        mqttManager.publish("$BaseTopic${Topics.MoveMap}Complete",mqttPayload)
+                        Log.d("Performance", "payload: $mqttPayload")
+                    }
+                    startTime = System.nanoTime()
+                    googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(mqttEvent.position, 15f))
+                }
+                else -> {}
             }
         }
     }

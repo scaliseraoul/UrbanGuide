@@ -24,7 +24,7 @@ enum class Topics {
                 topic?.contains("drawpoint", ignoreCase = true) == true -> DrawPoint
                 topic?.contains("inappalert", ignoreCase = true) == true -> InAppAlert
                 topic?.contains("inappnotification", ignoreCase = true) == true -> InAppNotification
-                topic?.contains("movemapp", ignoreCase = true) == true -> MoveMap
+                topic?.contains("movemap", ignoreCase = true) == true -> MoveMap
                 else -> Unmanaged
             }
         }
@@ -32,23 +32,9 @@ enum class Topics {
 }
 
 
-interface MqttEvent {
-    val title: String
-    val topic: String
-    fun getData(){
-
-    }
-}
-
-data class DrawPointEvent(
-    override val title: String,
-    val position: LatLng,
-    override val topic: String
-) : MqttEvent {
-
-    override fun getData() {
-        super.getData()
-    }
+sealed class MqttEvent {
+    data class DrawPointEvent(val title: String, val position: LatLng, val topic: String, val timestamp_sent: String) : MqttEvent()
+    data class MoveMapEvent(val position: LatLng, val topic: String, val timestamp_sent: String) : MqttEvent()
 }
 
 class MQTTManager(mqttCallback: MqttCallback) {

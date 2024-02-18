@@ -32,11 +32,11 @@ import com.google.android.gms.maps.model.LatLng
 import com.urbanguide.ui.theme.UrbanGuideTheme
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttMessage
+import org.json.JSONException
 import org.json.JSONObject
 
 
@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity()  {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MenuSheetScaffold(mqttEventChannel)
+                    MenuSheetScaffold(mqttEventChannel,mqttManager)
                 }
             }
         }
@@ -71,30 +71,39 @@ class MainActivity : ComponentActivity()  {
             override fun messageArrived(topic: String?, message: MqttMessage?) {
 
                 val topicEnum = Topics.fromTopic(topic)
-                val payload = JSONObject(message.toString())
 
-                // Use a when statement to handle different keywords
+                val payload = JSONObject(message.toString())
                 when (topicEnum) {
-                    Topics.MoveMap -> {
-                        // Handle temperature message
-                    }
-                    Topics.InAppNotification -> {
-                        // Handle humidity message
-                    }
-                    Topics.InAppAlert -> {
-                        // Handle light message
-                    }
-                    Topics.DrawPoint -> {
-                        lifecycleScope.launch {
-                            mqttEventChannel.send(DrawPointEvent(
-                                title = payload.getString("title"),
-                                position = LatLng(payload.getDouble("lat"),payload.getDouble("lang")),
-                                topic = topic.orEmpty()
-                            ))
+                        Topics.MoveMap -> {
+                            lifecycleScope.launch {
+                                val event = MqttEvent.MoveMapEvent(
+                                    position = LatLng(payload.getDouble("lat"),payload.getDouble("lang")),
+                                    topic = topic.orEmpty(),
+                                    timestamp_sent = payload.getString("timestamp")
+                                )
+                                mqttEventChannel.send(event)
+                            }
                         }
+                        Topics.InAppNotification -> {
+                            // Handle humidity message
+                        }
+                        Topics.InAppAlert -> {
+                            // Handle light message
+                        }
+                        Topics.DrawPoint -> {
+                            lifecycleScope.launch {
+                                val event = MqttEvent.DrawPointEvent(
+                                    title = payload.getString("title"),
+                                    position = LatLng(payload.getDouble("lat"),payload.getDouble("lang")),
+                                    topic = topic.orEmpty(),
+                                    timestamp_sent = payload.getString("timestamp")
+                                )
+                                mqttEventChannel.send(event)
+                            }
+                        }
+                        Topics.Unmanaged -> {}
                     }
-                    Topics.Unmanaged -> {}
-                }
+
 
                 val currentTimeMillis = System.currentTimeMillis()
                 Log.d(MQTTManager.TAG, "Receive message: ${message.toString()} from topic: $topic at time $currentTimeMillis")
@@ -109,14 +118,12 @@ class MainActivity : ComponentActivity()  {
             }
 
         })
-        mqttManager.subscribe("drawpoint")
-        //mqttManager.publish("test-topic","Ciao dall'app")
     }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class,ExperimentalMaterial3Api::class)
 @Composable
-fun MenuSheetScaffold(mqttEventChannel: Channel<MqttEvent>) {
+fun MenuSheetScaffold(mqttEventChannel: Channel<MqttEvent>, mqttManager: MQTTManager) {
 
     val scaffoldState = rememberBottomSheetScaffoldState(
         SheetState(
@@ -150,7 +157,7 @@ fun MenuSheetScaffold(mqttEventChannel: Channel<MqttEvent>) {
                 .fillMaxSize()
                 .padding(bottom = 90.dp)
         ) {
-            GoogleMapComponent(mapData,mqttEventChannel)
+            MapBoxComponent(mapData,mqttEventChannel,mqttManager)
         }
     }
 }
