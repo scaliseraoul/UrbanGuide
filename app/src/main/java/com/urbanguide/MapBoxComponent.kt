@@ -14,36 +14,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
-import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.common.Cancelable
 import com.mapbox.common.MapboxOptions
 import com.mapbox.geojson.Point
-import com.mapbox.maps.CameraChangedCallback
 import com.mapbox.maps.CameraOptions
-import com.mapbox.maps.MapIdle
-import com.mapbox.maps.MapIdleCallback
 import com.mapbox.maps.MapInitOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.Style
-import com.mapbox.maps.coroutine.mapIdleEvents
-import com.mapbox.maps.extension.observable.eventdata.MapIdleEventData
 import com.mapbox.maps.extension.style.layers.generated.rasterLayer
 import com.mapbox.maps.extension.style.sources.generated.rasterSource
 import com.mapbox.maps.extension.style.style
-import com.mapbox.maps.plugin.animation.flyTo
 import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
-import com.mapbox.maps.plugin.delegates.listeners.OnMapIdleListener
-import com.mapbox.maps.plugin.gestures.OnFlingListener
-import com.mapbox.maps.plugin.gestures.OnMoveListener
-import com.mapbox.maps.plugin.gestures.addOnFlingListener
-import com.mapbox.maps.plugin.gestures.addOnMoveListener
-import com.mapbox.maps.plugin.gestures.removeOnMoveListener
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 
@@ -112,16 +97,17 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent
     }
 
     LaunchedEffect(key1 = mqttEvents) {
-        var lastCancelable: Cancelable? = null
+        var idleCancelable: Cancelable? = null
+
         mqttEvents.collect { mqttEvent ->
 
             when (mqttEvent) {
                 is MqttEvent.DrawPointEvent -> {
-
-                    val point = convertLatLangToPoint(mqttEvent.position)
-                    val iconImage = BitmapFactory.decodeResource(context.resources, R.drawable.mapbox_marker_icon_20px_blue)
                     //start drawing fun
                     val startTime = System.nanoTime()
+                    val point = convertLatLangToPoint(mqttEvent.position)
+                    val iconImage = BitmapFactory.decodeResource(context.resources, R.drawable.mapbox_marker_icon_20px_blue)
+
                     val pointAnnotationOptions = PointAnnotationOptions()
                         .withPoint(point)
                         .withIconImage(iconImage)
@@ -134,17 +120,18 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent
                     Log.d("Performance", "payload: $mqttPayload")
                 }
                 is MqttEvent.MoveMapEvent -> {
-                    lastCancelable?.cancel()
+                    Log.d("Performance", "event received at: ${mqttEvent.timestamp_sent}")
+                    idleCancelable?.cancel()
 
                     var startTime : Long = 0
                     var elapsedTime : Long = 0
 
-                    lastCancelable = mapView.mapboxMap.subscribeMapIdle {
+                    idleCancelable = mapView.mapboxMap.subscribeCameraChanged {
                         elapsedTime = System.nanoTime() - startTime
                         val mqttPayload =
                             "${mqttEvent.timestamp_sent},Android,Kotlin,MapBox,${Topics.MoveMap},0,0,$elapsedTime"
                         mqttManager.publish("$BaseTopic${Topics.MoveMap}Complete", mqttPayload)
-                        Log.d("Performance", "payload: $mqttPayload")
+                        Log.d("Performance", "event sent: $mqttPayload")
                     }
 
                     startTime = System.nanoTime()
