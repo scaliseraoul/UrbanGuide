@@ -6,6 +6,7 @@ plugins {
 android {
     namespace = "com.urbanguide"
     compileSdk = 34
+    android.buildFeatures.buildConfig = true
 
     defaultConfig {
         applicationId = "com.urbanguide"
@@ -18,6 +19,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        manifestPlaceholders["MAPS_API_KEY"] = providers.gradleProperty("MAPS_API_KEY").get()
+        buildConfigField("String", "MAPS_API_KEY", "\"${providers.gradleProperty("MAPS_API_KEY").get()}\"")
+        buildConfigField("String", "MAPBOX_PUBLIC_KEY", "\"${providers.gradleProperty("MAPBOX_PUBLIC_KEY").get()}\"")
     }
 
     buildTypes {

@@ -21,24 +21,7 @@ import com.google.android.gms.maps.model.UrlTileProvider
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import java.net.URL
-
-/*
-    GoogleMap(
-        modifier = Modifier
-            .padding(0.dp)
-            .fillMaxWidth(),
-        cameraPositionState = cameraPositionState,
-        uiSettings = MapUiSettings(
-            zoomGesturesEnabled = true,
-            zoomControlsEnabled = false,
-            rotationGesturesEnabled = true,
-            mapToolbarEnabled = true
-        ),
-        properties = properties
-    ) {
-        GetMarkers(markers)
-        GetOverlays(heatmaps,adjustZoom)
-    } */
+import com.urbanguide.BuildConfig
 
 @Composable
 fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent>, mqttManager: MQTTManager) {
@@ -157,7 +140,7 @@ class HeatmapTileProvider(private val heatmapType: String) : UrlTileProvider(TIL
     companion object {
         private const val TILE_WIDTH = 256
         private const val TILE_HEIGHT = 256
-        private const val apiKey = "Google_Maps_Api_Key"
+        private const val apiKey = BuildConfig.MAPS_API_KEY
     }
 
     override fun getTileUrl(x: Int, y: Int, zoom: Int): URL? {

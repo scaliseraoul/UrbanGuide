@@ -47,7 +47,7 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent
     heatmaps = mapData.filterIsInstance<HeatmapData>()
 
     // Prepare your API key and tile server URL
-    val apiKey = "Google_Maps_Api_Key"
+    val apiKey = BuildConfig.MAPS_API_KEY
     val tileServerUrl = "https://airquality.googleapis.com/v1/mapTypes/UAQI_RED_GREEN/heatmapTiles/{z}/{x}/{y}?key=${apiKey}"
 
     // MapView initialization
@@ -159,7 +159,7 @@ fun rememberMapBoxViewWithLifecycle(): MapView {
     val context = LocalContext.current
     val mapView = remember {
         MapView(context, MapInitOptions(context).apply {
-            MapboxOptions.accessToken = "Mapbox_Public_Key"
+            MapboxOptions.accessToken = BuildConfig.MAPBOX_PUBLIC_KEY
         })
     }
 

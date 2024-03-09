@@ -27,7 +27,7 @@
         </activity>
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="Google_Maps_Api_Key"/>
+            android:value="${MAPS_API_KEY}"/>
         <service android:name="org.eclipse.paho.android.service.MqttService" />
     </application>
 
