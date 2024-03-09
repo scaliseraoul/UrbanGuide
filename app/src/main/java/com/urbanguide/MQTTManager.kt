@@ -2,7 +2,6 @@ package com.urbanguide
 
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
@@ -43,7 +42,7 @@ class MQTTManager(mqttCallback: MqttCallback) {
     }
 
     private val serverURI = "tcp://10.0.2.2:1883"
-    private val clientId: String = MqttClient.generateClientId();
+    private val clientId: String = MqttClient.generateClientId()
     private var mqttClient = MqttClient(serverURI, clientId, MemoryPersistence())
 
     init {

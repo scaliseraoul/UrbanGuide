@@ -21,15 +21,13 @@ import com.google.android.gms.maps.model.UrlTileProvider
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import java.net.URL
-import com.urbanguide.BuildConfig
 
 @Composable
 fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent>, mqttManager: MQTTManager) {
-    val TAG = "GoogleMapComponent"
     val BaseTopic = "AndroidKotlinGoogleMaps"
     val modena = LatLng(44.646469, 10.925139)
 
-    var position by remember { mutableStateOf(modena) }
+    val position by remember { mutableStateOf(modena) }
     var markers by remember { mutableStateOf(listOf<MarkerData>()) }
     var heatmaps by remember { mutableStateOf(listOf<HeatmapData>()) }
 
@@ -82,7 +80,6 @@ fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEv
                     startTime = System.nanoTime()
                     googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(mqttEvent.position, 15f))
                 }
-                else -> {}
             }
         }
     }
@@ -100,7 +97,7 @@ fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEv
                 } else {
                     map.setMaxZoomPreference(45.0f)
                 }
-                heatmaps.forEach {heatmapData ->
+                heatmaps.forEach { _ ->
                     val tileOverlayOption = TileOverlayOptions()
                     tileOverlayOption.tileProvider(HeatmapTileProvider("UAQI_RED_GREEN"))
                     tileOverlayOption.transparency(0.2f)

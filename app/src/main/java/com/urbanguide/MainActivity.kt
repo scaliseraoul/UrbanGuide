@@ -36,7 +36,6 @@ import kotlinx.coroutines.launch
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttMessage
-import org.json.JSONException
 import org.json.JSONObject
 
 
@@ -47,7 +46,6 @@ class MainActivity : ComponentActivity()  {
     companion object {
         const val TAG = "Raoul"
     }
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -121,7 +119,7 @@ class MainActivity : ComponentActivity()  {
     }
 }
 
-@OptIn(ExperimentalCoroutinesApi::class,ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuSheetScaffold(mqttEventChannel: Channel<MqttEvent>, mqttManager: MQTTManager) {
 

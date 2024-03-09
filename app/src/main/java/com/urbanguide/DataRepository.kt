@@ -55,8 +55,8 @@ object DataRepository {
 }
 
 fun getRandomLocation(): LatLng {
-    val startingPoint: LatLng = LatLng(44.646469, 10.925139)
-    val radiusInMeters : Double = 500.0
+    val startingPoint = LatLng(44.646469, 10.925139)
+    val radiusInMeters = 500.0
     val radiusInDegrees = radiusInMeters / 111320f
 
     // Random distance and angle
@@ -68,9 +68,9 @@ fun getRandomLocation(): LatLng {
     val y = w * sin(t)
 
     // Adjust the x-coordinate for the shrinking of the east-west distances
-    val new_x = x / cos(Math.toRadians(startingPoint.latitude))
+    val newX = x / cos(Math.toRadians(startingPoint.latitude))
 
-    val foundLongitude = new_x + startingPoint.longitude
+    val foundLongitude = newX + startingPoint.longitude
     val foundLatitude = y + startingPoint.latitude
 
     return LatLng(foundLatitude, foundLongitude)

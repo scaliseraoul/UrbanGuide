@@ -113,7 +113,7 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent
                         .withIconImage(iconImage)
                         .withTextField(mqttEvent.title)
 
-                    pointAnnotationManager?.create(pointAnnotationOptions)
+                    pointAnnotationManager.create(pointAnnotationOptions)
                     val elapsedTime = System.nanoTime() - startTime
                     val mqttPayload = "${mqttEvent.timestamp_sent},Android,Kotlin,MapBox,${Topics.DrawPoint},0,0,$elapsedTime"
                     mqttManager.publish("$BaseTopic${Topics.DrawPoint}Complete",mqttPayload)
@@ -124,7 +124,7 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent
                     idleCancelable?.cancel()
 
                     var startTime : Long = 0
-                    var elapsedTime : Long = 0
+                    var elapsedTime : Long
 
                     idleCancelable = mapView.mapboxMap.subscribeCameraChanged {
                         elapsedTime = System.nanoTime() - startTime
@@ -143,7 +143,6 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent
                             .build()
                     )
                 }
-                else -> {}
             }
         }
     }
