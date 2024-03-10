@@ -1,5 +1,6 @@
 package com.urbanguide
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -42,6 +43,15 @@ import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.json.JSONObject
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import java.lang.Integer.parseInt
 
 
 class MainActivity : ComponentActivity() {
@@ -54,6 +64,23 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1000)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "ChannelName"
+            val descriptionText = "Channel description"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel("0", name, importance).apply {
+                description = descriptionText
+            }
+            // Register the channel with the system
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
 
         setContent {
             UrbanGuideTheme {
@@ -114,10 +141,9 @@ class MainActivity : ComponentActivity() {
                                 topic = topic.orEmpty(),
                                 timestamp_sent = payload.getString("timestamp")
                             )
-                            mqttEventSharedFlow.emit(event)
+                            sendNotification(this@MainActivity,event)
                         }
                     }
-
                     Topics.InAppAlert -> {
                         lifecycleScope.launch {
                             val event = MqttEvent.InAppAlertEvent(
@@ -147,6 +173,30 @@ class MainActivity : ComponentActivity() {
         mqttManager.subscribe("AndroidKotlin${Topics.InAppNotification}Receive")
 
     }
+
+    fun sendNotification(context: Context, event: MqttEvent.InAppNotificationEvent) {
+        val startTime = System.nanoTime()
+        val builder = NotificationCompat.Builder(context, "0")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(event.title)
+            .setContentText(event.text)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        with(NotificationManagerCompat.from(context)) {
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+            notify(parseInt(event.timestamp_sent.takeLast(5)), builder.build())
+        }
+        val elapsedTime = System.nanoTime() - startTime
+        val mqttPayload = "${event.timestamp_sent},Android,Kotlin,-,${Topics.InAppNotification},0,0,$elapsedTime"
+        mqttManager.publish("AndroidKotlin${Topics.InAppNotification}Complete", mqttPayload)
+        Log.d("Performance", "event sent: $mqttPayload")
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class,ExperimentalMaterial3Api::class)
@@ -175,13 +225,11 @@ fun MenuSheetScaffold(mqttEventSharedFlow: MutableSharedFlow<MqttEvent>, mqttMan
     val mqttEvents = mqttEventSharedFlow.asSharedFlow()
 
     LaunchedEffect(key1 = mqttEvents) {
-        Log.d("Performance", "count:")
         mqttEvents.collect { mqttEvent ->
 
             when (mqttEvent) {
                 is MqttEvent.InAppAlertEvent -> {
                     val startTime = System.nanoTime()
-
                     scope.launch {
                         snackbarHostState.showSnackbar(
                             message = "${mqttEvent.text}${mqttEvent.timestamp_sent}",
@@ -193,15 +241,6 @@ fun MenuSheetScaffold(mqttEventSharedFlow: MutableSharedFlow<MqttEvent>, mqttMan
                         mqttManager.publish("AndroidKotlin${Topics.InAppAlert}Complete",mqttPayload)
                         Log.d("Performance", "payload: $mqttPayload")
                     }
-                }
-                is MqttEvent.InAppNotificationEvent -> {
-                    val startTime = System.nanoTime()
-
-
-                    val elapsedTime = System.nanoTime() - startTime
-                    val mqttPayload = "${mqttEvent.timestamp_sent},Android,Kotlin,-,${Topics.InAppNotification},0,0,$elapsedTime"
-                    mqttManager.publish("AndroidKotlin${Topics.InAppNotification}Complete", mqttPayload)
-                    Log.d("Performance", "event sent: $mqttPayload")
                 }
                 else -> {}
             }
