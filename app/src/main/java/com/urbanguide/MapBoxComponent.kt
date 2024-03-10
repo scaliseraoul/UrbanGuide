@@ -29,11 +29,13 @@ import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 
 @Composable
-fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent>, mqttManager: MQTTManager) {
+fun MapBoxComponent(mapData: List<DataBeam>, mqttEventSharedFlow: MutableSharedFlow<MqttEvent>, mqttManager: MQTTManager) {
     val BaseTopic = "AndroidKotlinMapbox"
     val context = LocalContext.current
     val modena = convertLatLangToPoint(LatLng(44.646469, 10.925139))
@@ -54,10 +56,7 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent
     val mapView = rememberMapBoxViewWithLifecycle()
     val pointAnnotationManager = remember { mapView.annotations.createPointAnnotationManager() }
 
-    /*
-    mapView.mapboxMap.loadStyle(style(Style.STANDARD) {})
-    */
-    val mqttEvents = mqttEventChannel.receiveAsFlow()
+    val mqttEvents = mqttEventSharedFlow.asSharedFlow()
 
 
     mqttManager.subscribe("$BaseTopic${Topics.DrawPoint}Receive")
@@ -96,14 +95,13 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent
         addMarkersToMap(context, markers, pointAnnotationManager)
     }
 
+
     LaunchedEffect(key1 = mqttEvents) {
+
         var idleCancelable: Cancelable? = null
-
         mqttEvents.collect { mqttEvent ->
-
             when (mqttEvent) {
                 is MqttEvent.DrawPointEvent -> {
-                    //start drawing fun
                     val startTime = System.nanoTime()
                     val point = convertLatLangToPoint(mqttEvent.position)
                     val iconImage = BitmapFactory.decodeResource(context.resources, R.drawable.mapbox_marker_icon_20px_blue)
@@ -120,7 +118,6 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent
                     Log.d("Performance", "payload: $mqttPayload")
                 }
                 is MqttEvent.MoveMapEvent -> {
-                    Log.d("Performance", "event received at: ${mqttEvent.timestamp_sent}")
                     idleCancelable?.cancel()
 
                     var startTime : Long = 0
@@ -143,6 +140,8 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent
                             .build()
                     )
                 }
+
+                else -> {}
             }
         }
     }

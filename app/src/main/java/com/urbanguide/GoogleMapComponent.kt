@@ -80,6 +80,8 @@ fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEv
                     startTime = System.nanoTime()
                     googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(mqttEvent.position, 15f))
                 }
+
+                else -> {}
             }
         }
     }

@@ -34,6 +34,8 @@ enum class Topics {
 sealed class MqttEvent {
     data class DrawPointEvent(val title: String, val position: LatLng, val topic: String, val timestamp_sent: String) : MqttEvent()
     data class MoveMapEvent(val position: LatLng, val topic: String, val timestamp_sent: String) : MqttEvent()
+    data class InAppAlertEvent(val text: String, val topic: String, val timestamp_sent: String) : MqttEvent()
+    data class InAppNotificationEvent(val title: String, val text: String, val topic: String, val timestamp_sent: String) : MqttEvent()
 }
 
 class MQTTManager(mqttCallback: MqttCallback) {
