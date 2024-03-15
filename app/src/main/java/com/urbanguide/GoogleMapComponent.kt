@@ -18,12 +18,13 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.TileOverlayOptions
 import com.google.android.gms.maps.model.UrlTileProvider
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import java.net.URL
 
 @Composable
-fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEvent>, mqttManager: MQTTManager) {
+fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: MutableSharedFlow<MqttEvent>, mqttManager: MQTTManager) {
     val BaseTopic = "AndroidKotlinGoogleMaps"
     val modena = LatLng(44.646469, 10.925139)
 
@@ -37,7 +38,7 @@ fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: Channel<MqttEv
     var googleMap by remember { mutableStateOf<GoogleMap?>(null) }
     val mapView = rememberGoogleMapViewWithLifecycle()
 
-    val mqttEvents = mqttEventChannel.receiveAsFlow()
+    val mqttEvents = mqttEventChannel.asSharedFlow()
 
     mapView.getMapAsync { map ->
         googleMap = map
