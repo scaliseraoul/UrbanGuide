@@ -235,12 +235,12 @@ fun MenuSheetScaffold(mqttEventSharedFlow: MutableSharedFlow<MqttEvent>, mqttMan
                             message = "${mqttEvent.text}${mqttEvent.timestamp_sent}",
                             duration = SnackbarDuration.Short
                         )
-                        val elapsedTime = System.nanoTime() - startTime
-                        snackbarHostState.currentSnackbarData?.dismiss()
-                        val mqttPayload = "${mqttEvent.timestamp_sent},Android,Kotlin,-,${Topics.InAppAlert},0,0,$elapsedTime"
-                        mqttManager.publish("AndroidKotlin${Topics.InAppAlert}Complete",mqttPayload)
-                        Log.d("Performance", "payload: $mqttPayload")
                     }
+                    val elapsedTime = System.nanoTime() - startTime
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                    val mqttPayload = "${mqttEvent.timestamp_sent},Android,Kotlin,-,${Topics.InAppAlert},0,0,$elapsedTime"
+                    mqttManager.publish("AndroidKotlin${Topics.InAppAlert}Complete",mqttPayload)
+                    Log.d("Performance", "payload: $mqttPayload")
                 }
                 else -> {}
             }
