@@ -12,6 +12,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 enum class Topics {
     DrawPoint,
+    DrawPointBatch,
     InAppAlert,
     InAppNotification,
     MoveMap,
@@ -20,6 +21,7 @@ enum class Topics {
     companion object {
         fun fromTopic(topic: String?): Topics {
             return when {
+                topic?.contains("drawpointbatch", ignoreCase = true) == true -> DrawPointBatch
                 topic?.contains("drawpoint", ignoreCase = true) == true -> DrawPoint
                 topic?.contains("inappalert", ignoreCase = true) == true -> InAppAlert
                 topic?.contains("inappnotification", ignoreCase = true) == true -> InAppNotification
@@ -33,6 +35,7 @@ enum class Topics {
 
 sealed class MqttEvent {
     data class DrawPointEvent(val title: String, val position: LatLng, val topic: String, val timestamp_sent: String) : MqttEvent()
+    data class DrawPointEventBatch(val events: List<DrawPointEvent>,val timestamp_sent: String) : MqttEvent()
     data class MoveMapEvent(val position: LatLng, val topic: String, val timestamp_sent: String) : MqttEvent()
     data class InAppAlertEvent(val text: String, val topic: String, val timestamp_sent: String) : MqttEvent()
     data class InAppNotificationEvent(val title: String, val text: String, val topic: String, val timestamp_sent: String) : MqttEvent()

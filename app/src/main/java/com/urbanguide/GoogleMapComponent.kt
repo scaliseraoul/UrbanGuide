@@ -20,7 +20,6 @@ import com.google.android.gms.maps.model.TileOverlayOptions
 import com.google.android.gms.maps.model.UrlTileProvider
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import java.net.URL
 
 @Composable
@@ -57,6 +56,7 @@ fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: MutableSharedF
 
     mqttManager.subscribe("$BaseTopic${Topics.DrawPoint}Receive")
     mqttManager.subscribe("$BaseTopic${Topics.MoveMap}Receive")
+    mqttManager.subscribe("$BaseTopic${Topics.DrawPointBatch}Receive")
 
     LaunchedEffect(key1 = mqttEvents) {
         mqttEvents.collect { mqttEvent ->
@@ -69,6 +69,22 @@ fun GoogleMapComponent(mapData: List<DataBeam>, mqttEventChannel: MutableSharedF
                     mqttManager.publish("$BaseTopic${Topics.DrawPoint}Complete",mqttPayload)
                     Log.d("Performance", "payload: $mqttPayload")
                 }
+
+                is MqttEvent.DrawPointEventBatch -> {
+                    val startTime = System.nanoTime()
+
+                    val eventlist = mqttEvent.events
+
+                    eventlist.forEach { event ->
+                        googleMap?.addMarker(MarkerOptions().position(event.position).title(event.title))
+                    }
+
+                    val elapsedTime = System.nanoTime() - startTime
+                    val mqttPayload = "${mqttEvent.timestamp_sent},Android,Kotlin,GoogleMap,${Topics.DrawPointBatch},0,0,$elapsedTime"
+                    mqttManager.publish("$BaseTopic${Topics.DrawPointBatch}Complete",mqttPayload)
+                    Log.d("Performance", "payload: $mqttPayload")
+                }
+
                 is MqttEvent.MoveMapEvent -> {
                     var startTime : Long = 0
                     var elapsedTime : Long = 0

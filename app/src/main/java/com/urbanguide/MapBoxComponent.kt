@@ -60,6 +60,7 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventSharedFlow: MutableSharedF
 
 
     mqttManager.subscribe("$BaseTopic${Topics.DrawPoint}Receive")
+    mqttManager.subscribe("$BaseTopic${Topics.DrawPointBatch}Receive")
     mqttManager.subscribe("$BaseTopic${Topics.MoveMap}Receive")
 
 
@@ -117,6 +118,30 @@ fun MapBoxComponent(mapData: List<DataBeam>, mqttEventSharedFlow: MutableSharedF
                     mqttManager.publish("$BaseTopic${Topics.DrawPoint}Complete",mqttPayload)
                     Log.d("Performance", "payload: $mqttPayload")
                 }
+
+                is MqttEvent.DrawPointEventBatch -> {
+                    val startTime = System.nanoTime()
+
+                    val eventlist = mqttEvent.events
+
+                    eventlist.forEach { event ->
+                        val point = convertLatLangToPoint(event.position)
+                        val iconImage = BitmapFactory.decodeResource(context.resources, R.drawable.mapbox_marker_icon_20px_blue)
+
+                        val pointAnnotationOptions = PointAnnotationOptions()
+                            .withPoint(point)
+                            .withIconImage(iconImage)
+                            .withTextField(event.title)
+
+                        pointAnnotationManager.create(pointAnnotationOptions)
+                    }
+
+                    val elapsedTime = System.nanoTime() - startTime
+                    val mqttPayload = "${mqttEvent.timestamp_sent},Android,Kotlin,MapBox,${Topics.DrawPointBatch},0,0,$elapsedTime"
+                    mqttManager.publish("$BaseTopic${Topics.DrawPointBatch}Complete",mqttPayload)
+                    Log.d("Performance", "payload: $mqttPayload")
+                }
+
                 is MqttEvent.MoveMapEvent -> {
                     idleCancelable?.cancel()
 

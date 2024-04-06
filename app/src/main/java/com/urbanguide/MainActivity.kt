@@ -119,6 +119,34 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    Topics.DrawPointBatch -> {
+                        lifecycleScope.launch {
+
+                            val events: MutableList<MqttEvent.DrawPointEvent> = mutableListOf()
+
+                            val rawlist = payload.getJSONArray("list")
+
+                            for (i in 0 until rawlist.length()) {
+                                val item = rawlist.getJSONObject(i)
+
+                                val event = MqttEvent.DrawPointEvent(
+                                    title = item.getString("title"),
+                                    position = LatLng(
+                                        item.getDouble("lat"),
+                                        item.getDouble("lang")
+                                    ),
+                                    topic = topic.orEmpty(),
+                                    timestamp_sent = item.getString("timestamp")
+                                )
+                                events.add(event)
+                            }
+
+                            val batchEvent = MqttEvent.DrawPointEventBatch(events = events, timestamp_sent = payload.getString("timestamp"))
+
+                            mqttEventSharedFlow.emit(batchEvent)
+                        }
+                    }
+
                     Topics.MoveMap -> {
                         lifecycleScope.launch {
                             val event = MqttEvent.MoveMapEvent(
